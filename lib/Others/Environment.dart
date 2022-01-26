@@ -1,0 +1,6 @@
+class EnvironmentConfig {
+  static const PROFILE_KEY = String.fromEnvironment('PROFILE_KEY');
+  static const PERSISTENCE_KEY = String.fromEnvironment('PERSISTENCE_KEY');
+  static const HERE_MAPS_KEY = String.fromEnvironment('HERE_MAPS_KEY');
+  static const BUS_KEY = String.fromEnvironment('BUS_KEY');
+}
