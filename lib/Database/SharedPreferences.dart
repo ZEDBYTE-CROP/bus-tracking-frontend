@@ -17,6 +17,11 @@ Future<bool> writeUserProfile(String profile) async {
   return prefs.setString("${EnvironmentConfig.PROFILE_KEY}", profile);
 }
 
+Future<bool> deleteUserProfile() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  return prefs.remove("${EnvironmentConfig.PROFILE_KEY}");
+}
+
 Future<String?> readUserProfile() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   return prefs.getString("${EnvironmentConfig.PROFILE_KEY}");
@@ -30,4 +35,9 @@ Future<bool> writeBusDetails(String busDetails) async {
 Future<String?> readBusDetails() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   return prefs.getString("${EnvironmentConfig.BUS_KEY}");
+}
+
+Future<bool> deleteBusDetails() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  return prefs.remove("${EnvironmentConfig.BUS_KEY}");
 }

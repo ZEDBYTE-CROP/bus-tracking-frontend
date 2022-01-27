@@ -38,6 +38,7 @@ class Result {
     required this.name,
     required this.phoneNumber,
     required this.idNumber,
+    required this.isStarted,
     required this.busNumber,
     required this.busIdNumber,
   });
@@ -46,6 +47,7 @@ class Result {
   String name;
   int phoneNumber;
   int idNumber;
+  bool isStarted;
   String busNumber;
   String busIdNumber;
 
@@ -54,6 +56,7 @@ class Result {
         name: json["name"],
         phoneNumber: json["phoneNumber"],
         idNumber: json["idNumber"],
+        isStarted: json["isStarted"],
         busNumber: json["busNumber"],
         busIdNumber: json["busIdNumber"],
       );
@@ -63,6 +66,7 @@ class Result {
         "name": name,
         "phoneNumber": phoneNumber,
         "idNumber": idNumber,
+        "isStarted": isStarted,
         "busNumber": busNumber,
         "busIdNumber": busIdNumber,
       };

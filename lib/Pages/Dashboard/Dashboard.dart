@@ -20,6 +20,7 @@ import 'package:bustracker/Model/Profile.dart';
 import 'package:bustracker/Model/UserBusDetail.dart';
 import 'package:bustracker/Others/LottieString.dart';
 import 'package:bustracker/Others/Routes.dart';
+import 'package:bustracker/Pages/Authentication/SignIn.dart';
 import 'package:bustracker/Pages/Bus/CreateBus.dart';
 import 'package:bustracker/Pages/Bus/DriverList.dart';
 import 'package:bustracker/Pages/Firestore/BusLocationCollection.dart';
@@ -52,6 +53,7 @@ class _DashboardState extends State<Dashboard> {
   Profile? profile;
   ValueNotifier<Tuple4> sendAlertValueNotifier = ValueNotifier<Tuple4>(Tuple4(-1, exceptionFromJson(alert), "Null", null));
   ValueNotifier<Tuple4> unassignDriverValueNotifier = ValueNotifier<Tuple4>(Tuple4(-1, exceptionFromJson(alert), "Null", null));
+  ValueNotifier<Tuple4> updateRouteStatusValueNotifier = ValueNotifier<Tuple4>(Tuple4(-1, exceptionFromJson(alert), "Null", null));
   ValueNotifier<Tuple4> dashboardValueNotifier = ValueNotifier<Tuple4>(Tuple4(0, exceptionFromJson(loading), "Loading", null));
 
   TextEditingController reasonTextEditingController = TextEditingController();
@@ -65,6 +67,16 @@ class _DashboardState extends State<Dashboard> {
       url: sendAlertUrl,
       requestMethod: 1,
       body: {"name": name, "type": reasonTextEditingController.text, "description": descriptionTextEditingController.text},
+    );
+  }
+
+  Future updateRouteStatusApiCall(String idNumber, bool status) async {
+    return await ApiHandler().apiHandler(
+      valueNotifier: updateRouteStatusValueNotifier,
+      jsonModel: defaultFromJson,
+      url: updateRouteStatusUrl,
+      requestMethod: 1,
+      body: {"idNumber": idNumber, "isStarted": status},
     );
   }
 
@@ -212,6 +224,19 @@ class _DashboardState extends State<Dashboard> {
                     backgroundColor: Color(white),
                     appBar: AppBar(
                       backgroundColor: Color(white),
+                      actions: [
+                        TextButton(
+                            onPressed: () async {
+                              await deleteUserProfile();
+                              await deleteBusDetails();
+                              await writeUserPersistence(false);
+                              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => SignIn()), (route) => false);
+                            },
+                            child: Text(
+                              "Logout",
+                              style: textStyle(color: Color(red)),
+                            ))
+                      ],
                       title: Text(
                         "Bus Tracker",
                         style: textStyle(),
@@ -252,7 +277,7 @@ class _DashboardState extends State<Dashboard> {
                                     child: textFormField(
                                       textStyle: textStyle(),
                                       textEditingController: searchTextEditingController,
-                                      hintText: "Search Bus Number",
+                                      hintText: "Search Bus Id Number",
                                       hintStyle: textStyle(color: Color(grey)),
                                       onFieldSubmitted: (value) async {
                                         page = 1;
@@ -460,6 +485,19 @@ class _DashboardState extends State<Dashboard> {
                     backgroundColor: Color(white),
                     appBar: AppBar(
                       backgroundColor: Color(white),
+                      actions: [
+                        TextButton(
+                            onPressed: () async {
+                              await deleteUserProfile();
+                              await deleteBusDetails();
+                              await writeUserPersistence(false);
+                              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => SignIn()), (route) => false);
+                            },
+                            child: Text(
+                              "Logout",
+                              style: textStyle(color: Color(red)),
+                            ))
+                      ],
                       title: Text(
                         "Bus Tracker",
                         style: textStyle(),
@@ -477,35 +515,48 @@ class _DashboardState extends State<Dashboard> {
                             ),
                             Padding(
                               padding: const EdgeInsets.all(8.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  flatButton(
+                              child: (dashboardValueNotifier.value.item2.result.isStarted == false)
+                                  ? flatButton(
                                       onPressed: () async {
                                         return await writeBusDetails(busDetailToJson(BusDetail(
                                                 busNumber: dashboardValueNotifier.value.item2.result.busNumber,
                                                 busIdNumber: dashboardValueNotifier.value.item2.result.busIdNumber)))
-                                            .whenComplete(() {
-                                          onStart();
+                                            .whenComplete(() async {
+                                          return await updateRouteStatusApiCall(dashboardValueNotifier.value.item2.result.idNumber.toString(), true).whenComplete(() async {
+                                            if (updateRouteStatusValueNotifier.value.item1 == 1) {
+                                              onStart();
+                                              valueResetter(updateRouteStatusValueNotifier);
+                                              await initialiser();
+                                            } else {
+                                              final snackBar = snackbar(content: updateRouteStatusValueNotifier.value.item3);
+                                              ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                              valueResetter(updateRouteStatusValueNotifier);
+                                            }
+                                          });
                                         });
                                       },
-                                      widget: Text("Start Trip")),
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 10),
-                                    child: flatButton(
-                                        onPressed: () async {
-                                          return await updateBus(
-                                                  busNumber: dashboardValueNotifier.value.item2.result.busNumber,
-                                                  busIdNumber: dashboardValueNotifier.value.item2.result.busIdNumber,
-                                                  geoPoint: null)
-                                              .whenComplete(() {
-                                            onStop();
+                                      widget: Text("Start Trip"))
+                                  : flatButton(
+                                      onPressed: () async {
+                                        return await updateBus(
+                                                busNumber: dashboardValueNotifier.value.item2.result.busNumber,
+                                                busIdNumber: dashboardValueNotifier.value.item2.result.busIdNumber,
+                                                geoPoint: null)
+                                            .whenComplete(() async {
+                                          return await updateRouteStatusApiCall(dashboardValueNotifier.value.item2.result.idNumber.toString(), false).whenComplete(() async {
+                                            if (updateRouteStatusValueNotifier.value.item1 == 1) {
+                                              onStop();
+                                              valueResetter(updateRouteStatusValueNotifier);
+                                              await initialiser();
+                                            } else {
+                                              final snackBar = snackbar(content: updateRouteStatusValueNotifier.value.item3);
+                                              ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                              valueResetter(updateRouteStatusValueNotifier);
+                                            }
                                           });
-                                        },
-                                        widget: Text("End Trip")),
-                                  ),
-                                ],
-                              ),
+                                        });
+                                      },
+                                      widget: Text("End Trip")),
                             ),
                             SizedBox(height: MediaQuery.of(context).size.height / 15),
                             Padding(
@@ -595,6 +646,19 @@ class _DashboardState extends State<Dashboard> {
                     backgroundColor: Color(white),
                     appBar: AppBar(
                       backgroundColor: Color(white),
+                      actions: [
+                        TextButton(
+                            onPressed: () async {
+                              await deleteUserProfile();
+                              await deleteBusDetails();
+                              await writeUserPersistence(false);
+                              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => SignIn()), (route) => false);
+                            },
+                            child: Text(
+                              "Logout",
+                              style: textStyle(color: Color(red)),
+                            ))
+                      ],
                       title: Text(
                         "Bus Tracker",
                         style: textStyle(),
@@ -624,7 +688,7 @@ class _DashboardState extends State<Dashboard> {
                                     child: textFormField(
                                       textStyle: textStyle(),
                                       textEditingController: searchTextEditingController,
-                                      hintText: "Search Bus Number",
+                                      hintText: "Search Bus Id Number",
                                       hintStyle: textStyle(color: Color(grey)),
                                       onFieldSubmitted: (value) async {
                                         page = 1;

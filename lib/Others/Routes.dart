@@ -12,3 +12,4 @@ const String createBusUrl = '$ip/bus/create';
 const String driverListUrl = '$ip/driver/list';
 const String assignDriverUrl = '$ip/driver/assign';
 const String unassignDriverUrl = '$ip/driver/unassign';
+const String updateRouteStatusUrl = '$ip/driver/updateTripStatus';
