@@ -2,6 +2,7 @@ import 'package:background_locator/background_locator.dart';
 import 'package:background_locator/settings/android_settings.dart';
 import 'package:background_locator/settings/ios_settings.dart';
 import 'package:background_locator/settings/locator_settings.dart' as bgSetting;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/painting.dart';
 import 'package:location/location.dart';
 import '../Style/Colors.dart';
@@ -50,6 +51,6 @@ Future<void> getLiveLocation() async {
               notificationBigMsg:
                   'Background location is on to keep the app up-to-date with your location. This is required for main features to work properly when the app is not running.',
               notificationIconColor: Color(materialBlack),
-              notificationIcon: "",
+              notificationIcon: "ic_launcher",
               notificationTapCallback: LocationCallbackHandler.notificationCallback)));
 }

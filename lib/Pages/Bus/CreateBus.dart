@@ -61,6 +61,15 @@ class _CreateBusState extends State<CreateBus> {
         appBar: AppBar(
           elevation: 0,
           backgroundColor: Color(white),
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: Icon(
+                Icons.arrow_back,
+                color: Color(materialBlack),
+              )),
           title: Text(
             "Create Bus",
             style: textStyle(),

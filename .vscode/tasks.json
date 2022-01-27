@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "flutter",
+      "command": "flutter",
+      "args": [
+        "build",
+        "apk",
+        "--dart-define",
+        "PROFILE_KEY=XnDukaCzXHyjHKqvrz3zEUbDCUYqSP0k",
+        "--dart-define",
+        "PERSISTENCE_KEY=RuCg5pMERMp0Mu6njcvLoFHqv3gLLLH7",
+        "--dart-define",
+        "BUS_KEY=sCcMEhgAu4ttUZTlIhT7ONypzt340Fi5",
+        "--release"
+      ],
+      "group": "build",
+      "problemMatcher": [],
+      "label": "flutter: flutter build apk"
+    }
+  ]
+}

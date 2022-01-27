@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:isolate';
 import 'dart:ui';
@@ -26,9 +28,11 @@ import 'package:bustracker/Others/location_service_repository.dart';
 import 'package:bustracker/Pages/Bus/CreateBus.dart';
 import 'package:bustracker/Pages/Bus/DriverList.dart';
 import 'package:bustracker/Pages/Firestore/BusLocationCollection.dart';
+import 'package:bustracker/Pages/Map/BusMap.dart';
 import 'package:bustracker/Style/Colors.dart';
 import 'package:bustracker/Style/Text.dart';
 import 'package:bustracker/Validator/Validator.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:location/location.dart';
@@ -42,6 +46,8 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
+  StreamController<LocationData> controller = StreamController<LocationData>();
+  StreamSubscription<LocationData>? streamSubscription;
   bool isLoading = false;
   List body = [];
 
@@ -59,7 +65,7 @@ class _DashboardState extends State<Dashboard> {
 
   LocationDto? lastLocation;
   bool? isRunning;
-  final ReceivePort port = ReceivePort();
+  ReceivePort port = ReceivePort();
 
   Future sendAlertApiCall(String name) async {
     return await ApiHandler().apiHandler(
@@ -109,6 +115,9 @@ class _DashboardState extends State<Dashboard> {
             body.addAll(dashboardValueNotifier.value.item2.result);
           });
         }
+      } else if (dashboardValueNotifier.value.item1 == 2 || dashboardValueNotifier.value.item1 == 3) {
+        final snackBar = snackbar(content: dashboardValueNotifier.value.item3);
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
     });
   }
@@ -130,12 +139,17 @@ class _DashboardState extends State<Dashboard> {
             body.addAll(dashboardValueNotifier.value.item2.result);
           });
         }
+      } else if (dashboardValueNotifier.value.item1 == 2 || dashboardValueNotifier.value.item1 == 3) {
+        final snackBar = snackbar(content: dashboardValueNotifier.value.item3);
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
     });
   }
 
   initialiser() async {
-    await readUserProfile().then((value) {
+    page = 1;
+    body.clear();
+    return await readUserProfile().then((value) {
       if (value == null) return;
       profile = profileFromJson(value);
     }).whenComplete(() async {
@@ -152,32 +166,24 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     initialiser();
-    WidgetsBinding.instance!.addObserver(LifecycleEventHandler(resumeCallBack: () async {
-      await Location().hasPermission().then((value) async {
-        if (value == PermissionStatus.granted || value == PermissionStatus.granted) {
-          // _controller = AnimationController(vsync: this)
-          // ..addListener(() {
-          //   if (!mounted) return;
-          //   setState(() {});
-          // });
-          // _controller = AnimationController(
-          //   vsync: this,
-          //   lowerBound: 0.3,
-          //   duration: Duration(seconds: 3),
-          // );
-        }
-      });
-    }));
-    if (IsolateNameServer.lookupPortByName(LocationServiceRepository.isolateName) != null) {
-      IsolateNameServer.removePortNameMapping(LocationServiceRepository.isolateName);
-    }
-    IsolateNameServer.registerPortWithName(port.sendPort, LocationServiceRepository.isolateName);
-    port.listen(
-      (dynamic data) async {
-        await updateUI(data);
-      },
-    );
-    initPlatformState();
+    // WidgetsBinding.instance!.addObserver(LifecycleEventHandler(resumeCallBack: () async {
+    //   await Location().hasPermission().then((value) async {
+    //     if (value == PermissionStatus.granted || value == PermissionStatus.granted) {
+    //       initialiser();
+    //     }
+    //   });
+    // }));
+
+    // if (IsolateNameServer.lookupPortByName(LocationServiceRepository.isolateName) != null) {
+    //   IsolateNameServer.removePortNameMapping(LocationServiceRepository.isolateName);
+    // }
+    // IsolateNameServer.registerPortWithName(port.sendPort, LocationServiceRepository.isolateName);
+    // port.listen(
+    //   (dynamic data) async {
+    //     await updateUI(data);
+    //   },
+    // );
+    // initPlatformState();
     super.initState();
   }
 
@@ -189,58 +195,89 @@ class _DashboardState extends State<Dashboard> {
     searchTextEditingController.dispose();
     reasonTextEditingController.dispose();
     descriptionTextEditingController.dispose();
+    streamSubscription!.cancel();
     body.clear();
     super.dispose();
   }
 
-  Future<void> updateUI(data) async {
-    await BackgroundLocator.updateNotificationText(title: "SITEPOL", msg: "Background Location is Running!", bigMsg: "SITEPOL needs to access location in the background!");
-  }
+  // Future<void> updateUI(data) async {
+  //   if (data == null) {
+  //     return;
+  //   }
+  //   // await BackgroundLocator.updateNotificationText(title: "BusTracker", msg: "Background Location is Running!", bigMsg: "BusTracker needs to access location in the background!");
+  //   await BackgroundLocator.updateNotificationText(title: "BusTracker", msg: "${DateTime.now()}", bigMsg: "${data.latitude}, ${data.longitude}");
+  // }
 
-  Future<void> initPlatformState() async {
-    print('Initializing...');
-    await BackgroundLocator.initialize();
-    print('Initialization done');
-    final _isRunning = await BackgroundLocator.isServiceRunning();
-    if (!mounted) return;
-    setState(() {
-      isRunning = _isRunning;
+  // Future<void> initPlatformState() async {
+  //   print('Initializing...');
+  //   await BackgroundLocator.initialize();
+  //   print('Initialization done');
+  //   final _isRunning = await BackgroundLocator.isServiceRunning();
+  //   if (!mounted) return;
+  //   setState(() {
+  //     isRunning = _isRunning;
+  //   });
+  //   print('Running ${isRunning.toString()}');
+  // }
+
+  // void onStop() async {
+  //   await BackgroundLocator.unRegisterLocationUpdate();
+  //   final _isRunning = await BackgroundLocator.isServiceRunning();
+  //   if (!mounted) return;
+  //   setState(() {
+  //     isRunning = _isRunning;
+  //   });
+  // }
+
+  // void onStart() async {
+  //   await getLocation().then((value) async {
+  //     if (value.item1 != null) {
+  //       await getLiveLocation();
+  //       final _isRunning = await BackgroundLocator.isServiceRunning();
+  //       if (!mounted) return;
+  //       setState(() {
+  //         isRunning = _isRunning;
+  //         lastLocation = null;
+  //       });
+  //     } else {
+  //       log(isRunning.toString());
+  //     }
+  //   });
+  // }
+
+  onStart() async {
+    Location location = new Location();
+    String? busMapString = await readBusDetails();
+    Map busMap = jsonDecode(busMapString!);
+    location.enableBackgroundMode(enable: true);
+    location.onLocationChanged.listen((event) async {
+      controller.add(event);
     });
-    print('Running ${isRunning.toString()}');
-  }
-
-  void onStop() async {
-    await BackgroundLocator.unRegisterLocationUpdate();
-    final _isRunning = await BackgroundLocator.isServiceRunning();
-    if (!mounted) return;
-    setState(() {
-      isRunning = _isRunning;
-    });
-  }
-
-  void onStart() async {
-    await getLocation().then((value) async {
-      if (value.item1 != null) {
-        await getLiveLocation();
-        final _isRunning = await BackgroundLocator.isServiceRunning();
-        if (!mounted) return;
-        setState(() {
-          isRunning = _isRunning;
-          lastLocation = null;
-        });
-      } else {
-        log(isRunning.toString());
+    if (streamSubscription != null) {
+      if (streamSubscription!.isPaused) {
+        streamSubscription!.resume();
       }
-    });
+    } else {
+      streamSubscription = controller.stream.listen((value) async {
+        await updateBus(busNumber: busMap["busNumber"], busIdNumber: busMap["busIdNumber"], geoPoint: GeoPoint(value.latitude!, value.longitude!));
+        print('Value from controller: $value');
+      });
+    }
+  }
+
+  onStop() async {
+    if (streamSubscription != null) {
+      streamSubscription!.pause();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: ValueListenableBuilder(
-          valueListenable: dashboardValueNotifier,
-          builder: (context, value, _) {
-            if (body.isNotEmpty || (profile != null && dashboardValueNotifier.value.item1 == 1)) {
+      child: AnimatedBuilder(
+          animation: Listenable.merge([dashboardValueNotifier, unassignDriverValueNotifier, sendAlertValueNotifier]),
+          builder: (context, _) {
+            if (profile != null) {
               if (profile!.claim == 0) {
                 return Scaffold(
                     backgroundColor: Color(white),
@@ -259,6 +296,7 @@ class _DashboardState extends State<Dashboard> {
                           }
                         });
                       },
+                      backgroundColor: Color(materialBlack),
                       child: Icon(Icons.add),
                     ),
                     body: NestedScrollView(
@@ -274,7 +312,7 @@ class _DashboardState extends State<Dashboard> {
                               snap: true,
                               forceElevated: innerBoxIsScrolled,
                               automaticallyImplyLeading: false,
-                              backgroundColor: Color(materialBlack),
+                              backgroundColor: Color(white),
                               bottom: PreferredSize(
                                 preferredSize: Size.fromHeight(30.0),
                                 child: Text(''),
@@ -302,7 +340,7 @@ class _DashboardState extends State<Dashboard> {
                                           Icons.search,
                                           size: 35,
                                         ),
-                                        color: Color(red),
+                                        color: Color(materialBlack),
                                       ),
                                     )),
                               ),
@@ -316,24 +354,25 @@ class _DashboardState extends State<Dashboard> {
                                   notification.metrics.axisDirection == AxisDirection.down &&
                                   notification.metrics.pixels == notification.metrics.maxScrollExtent) ==
                               true) {
-                            if (dashboardValueNotifier.value.item2.result.length == 10) {
-                              if (!mounted) return false;
+                            // if (dashboardValueNotifier.value.item2.result.length == 10) {
+                            if (!mounted) return false;
+                            setState(() {
+                              isLoading = true;
+                              page += 1;
+                            });
+                            this.busListApiCall().whenComplete(() {
+                              if (!mounted) return;
                               setState(() {
-                                isLoading = true;
-                                page += 1;
+                                isLoading = false;
                               });
-                              this.busListApiCall().whenComplete(() {
-                                if (!mounted) return;
-                                setState(() {
-                                  isLoading = false;
-                                });
-                              });
-                            } else {
-                              if (dashboardValueNotifier.value.item2.result.length == 0 || dashboardValueNotifier.value.item2.result.length < 10) {
-                                final snackBar = snackbar(content: "End of Scroll!");
-                                ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                              }
-                            }
+                            });
+                            // }
+                            // else {
+                            //   if (dashboardValueNotifier.value.item2.result.length == 0 || dashboardValueNotifier.value.item2.result.length < 10) {
+                            //     final snackBar = snackbar(content: "End of Scroll!");
+                            //     ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                            //   }
+                            // }
                           }
                           return true;
                         },
@@ -345,231 +384,284 @@ class _DashboardState extends State<Dashboard> {
                             },
                             child: Padding(
                                 padding: const EdgeInsets.only(left: 20, right: 20),
-                                child: Column(
-                                  children: [
-                                    Expanded(
-                                      child: ListView.builder(
-                                          itemCount: body.length,
-                                          shrinkWrap: true,
-                                          itemBuilder: (context, index) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(bottom: 20),
-                                              child: container(
-                                                  padding: EdgeInsets.only(top: 15, bottom: 15, left: 10, right: 10),
-                                                  bgColor: Color(materialBlack),
-                                                  widget: Flexible(
-                                                    child: Padding(
-                                                      padding: const EdgeInsets.only(left: 10),
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(
-                                                            "BUS ID : " + body[index].busIdNumber,
-                                                            style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
-                                                            overflow: TextOverflow.ellipsis,
-                                                            maxLines: 1,
-                                                            softWrap: true,
-                                                          ),
-                                                          Padding(
-                                                            padding: const EdgeInsets.only(top: 2.5),
-                                                            child: Text(
-                                                              "BUS ROUTE : " + body[index].busRoute,
-                                                              style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
-                                                              overflow: TextOverflow.ellipsis,
-                                                              maxLines: 1,
-                                                              softWrap: true,
-                                                            ),
-                                                          ),
-                                                          Padding(
-                                                            padding: const EdgeInsets.only(top: 2.5),
-                                                            child: Text(
-                                                              "BUS NO : " + body[index].busNumber,
-                                                              style: textStyle(color: Color(white), fontsize: 18),
-                                                              overflow: TextOverflow.ellipsis,
-                                                              maxLines: 1,
-                                                              softWrap: true,
-                                                            ),
-                                                          ),
-                                                          Align(
-                                                            alignment: Alignment.center,
-                                                            child: Row(
-                                                              children: [
-                                                                flatButton(
-                                                                    backgroundColor: Color(white),
-                                                                    onPressed: () {
-                                                                      //TODO Location
-                                                                    },
-                                                                    widget: Text("Location")),
-                                                                Padding(
-                                                                  padding: const EdgeInsets.only(left: 10),
-                                                                  child: flatButton(
-                                                                      backgroundColor: Color(white),
-                                                                      onPressed: (dashboardValueNotifier.value.item2.result[index].isAssigned == true)
-                                                                          ? (unassignDriverValueNotifier.value.item1 == 0)
-                                                                              ? null
-                                                                              : () async {
-                                                                                  return await unassignDriverApiCall(
-                                                                                          busId: dashboardValueNotifier.value.item2.result[index].busIdNumber,
-                                                                                          driverId: dashboardValueNotifier.value.item2.result[index].busDriverId)
-                                                                                      .whenComplete(() async {
-                                                                                    if (unassignDriverValueNotifier.value.item1 == 1) {
-                                                                                      await busListApiCall();
-                                                                                      valueResetter(unassignDriverValueNotifier);
-                                                                                    } else if (unassignDriverValueNotifier.value.item1 == 2 ||
-                                                                                        unassignDriverValueNotifier.value.item1 == 3) {
-                                                                                      valueResetter(unassignDriverValueNotifier);
-                                                                                      final snackBar = snackbar(content: unassignDriverValueNotifier.value.item3);
-                                                                                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                                                                                    }
-                                                                                  });
-                                                                                }
-                                                                          : () {
-                                                                              Navigator.push(
-                                                                                  context,
-                                                                                  MaterialPageRoute(
-                                                                                      builder: (context) => DriverList(
-                                                                                            busIdNumber: dashboardValueNotifier.value.item2.result[index].busIdNumber,
-                                                                                          ))).whenComplete(() async {
-                                                                                await busListApiCall();
-                                                                              });
-                                                                            },
-                                                                      widget: Text((dashboardValueNotifier.value.item2.result[index].isAssigned == true)
-                                                                          ? "Assign Driver"
-                                                                          : "Unassign Driver")),
+                                child: (body.isNotEmpty || dashboardValueNotifier.value.item1 == 1)
+                                    ? Column(
+                                        children: [
+                                          Expanded(
+                                            child: ListView.builder(
+                                                itemCount: body.length,
+                                                shrinkWrap: true,
+                                                itemBuilder: (context, index) {
+                                                  return Padding(
+                                                    padding: const EdgeInsets.only(bottom: 20),
+                                                    child: container(
+                                                        padding: EdgeInsets.only(top: 15, bottom: 15, left: 10, right: 10),
+                                                        bgColor: Color(materialBlack),
+                                                        widget: Padding(
+                                                          padding: const EdgeInsets.only(left: 10),
+                                                          child: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Text(
+                                                                "BUS ID : " + body[index].busIdNumber,
+                                                                style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
+                                                                overflow: TextOverflow.ellipsis,
+                                                                maxLines: 1,
+                                                                softWrap: true,
+                                                              ),
+                                                              Padding(
+                                                                padding: const EdgeInsets.only(top: 2.5),
+                                                                child: Text(
+                                                                  "BUS ROUTE : " + body[index].busRoute,
+                                                                  style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
+                                                                  overflow: TextOverflow.ellipsis,
+                                                                  maxLines: 1,
+                                                                  softWrap: true,
                                                                 ),
-                                                              ],
-                                                            ),
-                                                          )
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  )),
-                                            );
-                                          }),
-                                    ),
-                                    Container(
-                                      height: (isLoading == true) ? 20.0 : 0,
-                                      color: Colors.transparent,
-                                      child: Center(
-                                        child: new LinearProgressIndicator(
-                                          color: Color(red),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ))),
+                                                              ),
+                                                              Padding(
+                                                                padding: const EdgeInsets.only(top: 2.5),
+                                                                child: Text(
+                                                                  "BUS NO : " + body[index].busNumber,
+                                                                  style: textStyle(color: Color(white), fontsize: 18),
+                                                                  overflow: TextOverflow.ellipsis,
+                                                                  maxLines: 1,
+                                                                  softWrap: true,
+                                                                ),
+                                                              ),
+                                                              Padding(
+                                                                padding: const EdgeInsets.only(top: 2.5),
+                                                                child: Align(
+                                                                  alignment: Alignment.center,
+                                                                  child: Row(
+                                                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                                    children: [
+                                                                      flatButton(
+                                                                          backgroundColor: Color(white),
+                                                                          primary: Color(materialBlack),
+                                                                          onPressed: () {
+                                                                            Navigator.push(
+                                                                                context,
+                                                                                MaterialPageRoute(
+                                                                                    builder: (context) =>
+                                                                                        BusMap(busNumber: body[index].busNumber, busIdNumber: body[index].busIdNumber)));
+                                                                          },
+                                                                          widget: Text("Location")),
+                                                                      Padding(
+                                                                        padding: const EdgeInsets.only(left: 10),
+                                                                        child: flatButton(
+                                                                            primary: Color(materialBlack),
+                                                                            backgroundColor: Color(white),
+                                                                            onPressed: (body[index].isAssigned == true)
+                                                                                ? (unassignDriverValueNotifier.value.item1 == 0)
+                                                                                    ? null
+                                                                                    : () async {
+                                                                                        return await unassignDriverApiCall(
+                                                                                                busId: body[index].busIdNumber, driverId: body[index].busDriverId)
+                                                                                            .whenComplete(() async {
+                                                                                          if (unassignDriverValueNotifier.value.item1 == 1) {
+                                                                                            page = 1;
+                                                                                            body.clear();
+                                                                                            valueResetter(unassignDriverValueNotifier);
+                                                                                            return await busListApiCall();
+                                                                                          } else if (unassignDriverValueNotifier.value.item1 == 2 ||
+                                                                                              unassignDriverValueNotifier.value.item1 == 3) {
+                                                                                            valueResetter(unassignDriverValueNotifier);
+                                                                                            final snackBar = snackbar(content: unassignDriverValueNotifier.value.item3);
+                                                                                            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                                                                          }
+                                                                                        });
+                                                                                      }
+                                                                                : () {
+                                                                                    Navigator.push(
+                                                                                        context,
+                                                                                        MaterialPageRoute(
+                                                                                            builder: (context) => DriverList(
+                                                                                                  busIdNumber: body[index].busIdNumber,
+                                                                                                ))).whenComplete(() async {
+                                                                                      page = 1;
+                                                                                      body.clear();
+                                                                                      return await busListApiCall();
+                                                                                    });
+                                                                                  },
+                                                                            widget: Text((body[index].isAssigned == true) ? "Unassign Driver" : "Assign Driver")),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                              )
+                                                            ],
+                                                          ),
+                                                        )),
+                                                  );
+                                                }),
+                                          ),
+                                          Container(
+                                            height: (isLoading == true) ? 20.0 : 0,
+                                            color: Colors.transparent,
+                                            child: Center(
+                                              child: new LinearProgressIndicator(
+                                                color: Color(materialBlack),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : (dashboardValueNotifier.value.item1 == 2 || dashboardValueNotifier.value.item1 == 3)
+                                        ? exceptionScaffold(
+                                            context: context,
+                                            lottieString: dashboardValueNotifier.value.item2!.lottieString,
+                                            subtitle: dashboardValueNotifier.value.item3,
+                                            buttonTitle: "Try Again",
+                                            goBack: false,
+                                            onPressed: () async {
+                                              return await initialiser();
+                                            })
+                                        : exceptionScaffold(
+                                            context: context,
+                                            lottieString: dashboardValueNotifier.value.item2!.lottieString,
+                                            subtitle: dashboardValueNotifier.value.item3,
+                                            goBack: false,
+                                          ))),
                       ),
                     ));
               } else if (profile!.claim == 2) {
-                return Scaffold(
-                  backgroundColor: Color(white),
-                  appBar: AppBar(
+                if (dashboardValueNotifier.value.item1 == 1) {
+                  return Scaffold(
                     backgroundColor: Color(white),
-                    title: Text(
-                      "Bus Tracker",
-                      style: textStyle(),
-                    ),
-                  ),
-                  body: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 20, right: 20),
-                      child: Column(
-                        children: [
-                          Text(
-                            "CLICK THIS BUTTON TO UPDATE YOUR TRIP STATUS",
-                            style: textStyle(),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              children: [
-                                flatButton(
-                                    onPressed: () async {
-                                      return await writeBusDetails(busDetailToJson(BusDetail(
-                                              busNumber: dashboardValueNotifier.value.item2.result[0].busNumber,
-                                              busIdNumber: dashboardValueNotifier.value.item2.result[0].busIdNumber)))
-                                          .whenComplete(() {
-                                        onStart();
-                                      });
-                                    },
-                                    widget: Text("Start Trip")),
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 10),
-                                  child: flatButton(
-                                      onPressed: () async {
-                                        return await updateBus(
-                                                busNumber: dashboardValueNotifier.value.item2.result[0].busNumber,
-                                                busIdNumber: dashboardValueNotifier.value.item2.result[0].busIdNumber,
-                                                geoPoint: null)
-                                            .whenComplete(() {
-                                          onStop();
-                                        });
-                                      },
-                                      widget: Text("End Trip")),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              children: [
-                                Text(
-                                  "ALERT EMERGENCY",
-                                  style: textStyle(),
-                                ),
-                                Form(
-                                    key: _formKey,
-                                    child: Column(
-                                      children: [
-                                        textFormField(
-                                          textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
-                                          textEditingController: reasonTextEditingController,
-                                          hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
-                                          hintText: "Enter Reason",
-                                          validator: (value) => defaultValidator(value, "Reason"),
-                                        ),
-                                        textFormField(
-                                          textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
-                                          textEditingController: descriptionTextEditingController,
-                                          hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
-                                          hintText: "Enter Description",
-                                          validator: (value) => defaultValidator(value, "Description"),
-                                        ),
-                                      ],
-                                    )),
-                                flatButton(
-                                    onPressed: (sendAlertValueNotifier.value.item1 == 0)
-                                        ? null
-                                        : () async {
-                                            if (_formKey.currentState!.validate()) {
-                                              return await sendAlertApiCall(dashboardValueNotifier.value.item2.result[0].name).whenComplete(() {
-                                                if (sendAlertValueNotifier.value.item1 == 1) {
-                                                  valueResetter(sendAlertValueNotifier);
-                                                  final snackBar = snackbar(content: sendAlertValueNotifier.value.item3);
-                                                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                                                } else if (sendAlertValueNotifier.value.item1 == 2 || sendAlertValueNotifier.value.item1 == 3) {
-                                                  valueResetter(sendAlertValueNotifier);
-                                                  final snackBar = snackbar(content: sendAlertValueNotifier.value.item3);
-                                                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                                                }
-                                              });
-                                            } else {
-                                              final snackBar = snackbar(content: "Fill out the required fields!");
-                                              ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                                            }
-                                          },
-                                    widget: Text("SEND ALERT")),
-                                Text("USE THIS ONLY AT EMERGENCY")
-                              ],
-                            ),
-                          )
-                        ],
+                    appBar: AppBar(
+                      backgroundColor: Color(white),
+                      title: Text(
+                        "Bus Tracker",
+                        style: textStyle(),
                       ),
                     ),
-                  ),
-                );
-              } else {
+                    body: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 20, right: 20),
+                        child: Column(
+                          children: [
+                            SizedBox(height: MediaQuery.of(context).size.height / 15),
+                            Text(
+                              "CLICK THIS BUTTON TO UPDATE YOUR TRIP STATUS",
+                              style: textStyle(),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  flatButton(
+                                      onPressed: () async {
+                                        return await writeBusDetails(busDetailToJson(BusDetail(
+                                                busNumber: dashboardValueNotifier.value.item2.result.busNumber,
+                                                busIdNumber: dashboardValueNotifier.value.item2.result.busIdNumber)))
+                                            .whenComplete(() {
+                                          onStart();
+                                        });
+                                      },
+                                      widget: Text("Start Trip")),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 10),
+                                    child: flatButton(
+                                        onPressed: () async {
+                                          return await updateBus(
+                                                  busNumber: dashboardValueNotifier.value.item2.result.busNumber,
+                                                  busIdNumber: dashboardValueNotifier.value.item2.result.busIdNumber,
+                                                  geoPoint: null)
+                                              .whenComplete(() {
+                                            onStop();
+                                          });
+                                        },
+                                        widget: Text("End Trip")),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: MediaQuery.of(context).size.height / 15),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    "ALERT EMERGENCY",
+                                    style: textStyle(),
+                                  ),
+                                  Form(
+                                      key: _formKey,
+                                      child: Column(
+                                        children: [
+                                          textFormField(
+                                            textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
+                                            textEditingController: reasonTextEditingController,
+                                            hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
+                                            hintText: "Enter Reason",
+                                            validator: (value) => defaultValidator(value, "Reason"),
+                                          ),
+                                          textFormField(
+                                            textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
+                                            textEditingController: descriptionTextEditingController,
+                                            hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
+                                            hintText: "Enter Description",
+                                            validator: (value) => defaultValidator(value, "Description"),
+                                          ),
+                                        ],
+                                      )),
+                                  flatButton(
+                                      onPressed: (sendAlertValueNotifier.value.item1 == 0)
+                                          ? null
+                                          : () async {
+                                              if (_formKey.currentState!.validate()) {
+                                                return await sendAlertApiCall(dashboardValueNotifier.value.item2.result.name).whenComplete(() {
+                                                  if (sendAlertValueNotifier.value.item1 == 1) {
+                                                    final snackBar = snackbar(content: sendAlertValueNotifier.value.item3);
+                                                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                                    valueResetter(sendAlertValueNotifier);
+                                                    reasonTextEditingController.clear();
+                                                    descriptionTextEditingController.clear();
+                                                  } else if (sendAlertValueNotifier.value.item1 == 2 || sendAlertValueNotifier.value.item1 == 3) {
+                                                    final snackBar = snackbar(content: sendAlertValueNotifier.value.item3);
+                                                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                                    valueResetter(sendAlertValueNotifier);
+                                                  }
+                                                });
+                                              } else {
+                                                final snackBar = snackbar(content: "Fill out the required fields!");
+                                                ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                              }
+                                            },
+                                      widget: Text("SEND ALERT")),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text("*USE THIS ONLY AT EMERGENCY"),
+                                  )
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                } else if (dashboardValueNotifier.value.item1 == 2 || dashboardValueNotifier.value.item1 == 3) {
+                  return exceptionScaffold(
+                      context: context,
+                      lottieString: dashboardValueNotifier.value.item2!.lottieString,
+                      subtitle: dashboardValueNotifier.value.item3,
+                      buttonTitle: "Try Again",
+                      goBack: false,
+                      onPressed: () async {
+                        return await initialiser();
+                      });
+                } else {
+                  return exceptionScaffold(
+                    context: context,
+                    lottieString: dashboardValueNotifier.value.item2!.lottieString,
+                    subtitle: dashboardValueNotifier.value.item3,
+                    goBack: false,
+                  );
+                }
+              } else if (profile!.claim == 1) {
                 return Scaffold(
                     backgroundColor: Color(white),
                     appBar: AppBar(
@@ -592,7 +684,7 @@ class _DashboardState extends State<Dashboard> {
                               snap: true,
                               forceElevated: innerBoxIsScrolled,
                               automaticallyImplyLeading: false,
-                              backgroundColor: Color(materialBlack),
+                              backgroundColor: Color(white),
                               bottom: PreferredSize(
                                 preferredSize: Size.fromHeight(30.0),
                                 child: Text(''),
@@ -620,7 +712,7 @@ class _DashboardState extends State<Dashboard> {
                                           Icons.search,
                                           size: 35,
                                         ),
-                                        color: Color(red),
+                                        color: Color(materialBlack),
                                       ),
                                     )),
                               ),
@@ -634,24 +726,24 @@ class _DashboardState extends State<Dashboard> {
                                   notification.metrics.axisDirection == AxisDirection.down &&
                                   notification.metrics.pixels == notification.metrics.maxScrollExtent) ==
                               true) {
-                            if (dashboardValueNotifier.value.item2.result.length == 10) {
-                              if (!mounted) return false;
+                            // if (dashboardValueNotifier.value.item2.result.length == 10) {
+                            if (!mounted) return false;
+                            setState(() {
+                              isLoading = true;
+                              page += 1;
+                            });
+                            this.assignedBusListApiCall().whenComplete(() {
+                              if (!mounted) return;
                               setState(() {
-                                isLoading = true;
-                                page += 1;
+                                isLoading = false;
                               });
-                              this.assignedBusListApiCall().whenComplete(() {
-                                if (!mounted) return;
-                                setState(() {
-                                  isLoading = false;
-                                });
-                              });
-                            } else {
-                              if (dashboardValueNotifier.value.item2.result.length == 0 || dashboardValueNotifier.value.item2.result.length < 10) {
-                                final snackBar = snackbar(content: "End of Scroll!");
-                                ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                              }
-                            }
+                            });
+                            // } else {
+                            //   if (dashboardValueNotifier.value.item2.result.length == 0 || dashboardValueNotifier.value.item2.result.length < 10) {
+                            //     final snackBar = snackbar(content: "End of Scroll!");
+                            //     ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                            //   }
+                            // }
                           }
                           return true;
                         },
@@ -663,99 +755,114 @@ class _DashboardState extends State<Dashboard> {
                             },
                             child: Padding(
                                 padding: const EdgeInsets.only(left: 20, right: 20),
-                                child: Column(
-                                  children: [
-                                    Expanded(
-                                      child: ListView.builder(
-                                          itemCount: body.length,
-                                          shrinkWrap: true,
-                                          itemBuilder: (context, index) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(bottom: 20),
-                                              child: GestureDetector(
-                                                onTap: () {
-                                                  //TODO go to map
-                                                },
-                                                child: container(
-                                                    padding: EdgeInsets.only(top: 15, bottom: 15, left: 10, right: 10),
-                                                    bgColor: Color(materialBlack),
-                                                    widget: Flexible(
-                                                      child: Padding(
-                                                        padding: const EdgeInsets.only(left: 10),
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Text(
-                                                              "BUS ID : " + body[index].busIdNumber,
-                                                              style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
-                                                              overflow: TextOverflow.ellipsis,
-                                                              maxLines: 1,
-                                                              softWrap: true,
+                                child: (body.isNotEmpty || dashboardValueNotifier.value.item1 == 1)
+                                    ? Column(
+                                        children: [
+                                          Expanded(
+                                            child: ListView.builder(
+                                                itemCount: body.length,
+                                                shrinkWrap: true,
+                                                itemBuilder: (context, index) {
+                                                  return Padding(
+                                                    padding: const EdgeInsets.only(bottom: 20),
+                                                    child: GestureDetector(
+                                                      onTap: () {
+                                                        Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                                builder: (context) => BusMap(busNumber: body[index].busNumber, busIdNumber: body[index].busIdNumber)));
+                                                      },
+                                                      child: container(
+                                                          padding: EdgeInsets.only(top: 15, bottom: 15, left: 10, right: 10),
+                                                          bgColor: Color(materialBlack),
+                                                          widget: Padding(
+                                                            padding: const EdgeInsets.only(left: 10),
+                                                            child: Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                Text(
+                                                                  "BUS ID : " + body[index].busIdNumber,
+                                                                  style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
+                                                                  overflow: TextOverflow.ellipsis,
+                                                                  maxLines: 1,
+                                                                  softWrap: true,
+                                                                ),
+                                                                Text(
+                                                                  "DRIVER NAME : " + body[index].busDriverName,
+                                                                  style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
+                                                                  overflow: TextOverflow.ellipsis,
+                                                                  maxLines: 1,
+                                                                  softWrap: true,
+                                                                ),
+                                                                Padding(
+                                                                  padding: const EdgeInsets.only(top: 2.5),
+                                                                  child: Text(
+                                                                    "BUS ROUTE : " + body[index].busRoute,
+                                                                    style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
+                                                                    overflow: TextOverflow.ellipsis,
+                                                                    maxLines: 1,
+                                                                    softWrap: true,
+                                                                  ),
+                                                                ),
+                                                                Padding(
+                                                                  padding: const EdgeInsets.only(top: 2.5),
+                                                                  child: Text(
+                                                                    "BUS NO : " + body[index].busNumber,
+                                                                    style: textStyle(color: Color(white), fontsize: 18),
+                                                                    overflow: TextOverflow.ellipsis,
+                                                                    maxLines: 1,
+                                                                    softWrap: true,
+                                                                  ),
+                                                                ),
+                                                              ],
                                                             ),
-                                                            Text(
-                                                              "DRIVER NAME : " + body[index].busDriverName,
-                                                              style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
-                                                              overflow: TextOverflow.ellipsis,
-                                                              maxLines: 1,
-                                                              softWrap: true,
-                                                            ),
-                                                            Padding(
-                                                              padding: const EdgeInsets.only(top: 2.5),
-                                                              child: Text(
-                                                                "BUS ROUTE : " + body[index].busRoute,
-                                                                style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
-                                                                overflow: TextOverflow.ellipsis,
-                                                                maxLines: 1,
-                                                                softWrap: true,
-                                                              ),
-                                                            ),
-                                                            Padding(
-                                                              padding: const EdgeInsets.only(top: 2.5),
-                                                              child: Text(
-                                                                "BUS NO : " + body[index].busNumber,
-                                                                style: textStyle(color: Color(white), fontsize: 18),
-                                                                overflow: TextOverflow.ellipsis,
-                                                                maxLines: 1,
-                                                                softWrap: true,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    )),
+                                                          )),
+                                                    ),
+                                                  );
+                                                }),
+                                          ),
+                                          Container(
+                                            height: (isLoading == true) ? 20.0 : 0,
+                                            color: Colors.transparent,
+                                            child: Center(
+                                              child: new LinearProgressIndicator(
+                                                color: Color(materialBlack),
                                               ),
-                                            );
-                                          }),
-                                    ),
-                                    Container(
-                                      height: (isLoading == true) ? 20.0 : 0,
-                                      color: Colors.transparent,
-                                      child: Center(
-                                        child: new LinearProgressIndicator(
-                                          color: Color(red),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ))),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : (dashboardValueNotifier.value.item1 == 2 || dashboardValueNotifier.value.item1 == 3)
+                                        ? exceptionScaffold(
+                                            context: context,
+                                            lottieString: dashboardValueNotifier.value.item2!.lottieString,
+                                            subtitle: dashboardValueNotifier.value.item3,
+                                            buttonTitle: "Try Again",
+                                            goBack: false,
+                                            onPressed: () async {
+                                              return await initialiser();
+                                            })
+                                        : exceptionScaffold(
+                                            context: context,
+                                            lottieString: dashboardValueNotifier.value.item2!.lottieString,
+                                            subtitle: dashboardValueNotifier.value.item3,
+                                            goBack: false,
+                                          ))),
                       ),
                     ));
-              }
-            } else if (dashboardValueNotifier.value.item1 == 2 || dashboardValueNotifier.value.item1 == 3) {
-              return exceptionScaffold(
+              } else {
+                return exceptionScaffold(
                   context: context,
-                  lottieString: dashboardValueNotifier.value.item2!.lottieString,
-                  subtitle: dashboardValueNotifier.value.item3,
-                  buttonTitle: "Try Again",
+                  lottieString: "assets/lottie/alert.json",
+                  subtitle: "Out of Claim!!!",
                   goBack: false,
-                  onPressed: () async {
-                    return await initialiser();
-                  });
+                );
+              }
             } else {
               return exceptionScaffold(
                 context: context,
-                lottieString: dashboardValueNotifier.value.item2!.lottieString,
-                subtitle: dashboardValueNotifier.value.item3,
+                lottieString: "assets/lottie/loading.json",
+                subtitle: "loading!",
                 goBack: false,
               );
             }

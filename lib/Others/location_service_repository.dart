@@ -69,25 +69,23 @@ class LocationServiceRepository {
     send?.send(null);
   }
 
-  Future<void> callback({LocationDto? locationDto, Map? web}) async {
+  Future<void> callback({LocationDto? locationDto}) async {
     final SendPort? send = IsolateNameServer.lookupPortByName(isolateName);
     // dev.log("web" + websocketMap.toString());
-    // dev.log("var" + myVariable.toString());
-
     String? busMapString = await readBusDetails();
+    Map busMap = jsonDecode(busMapString!);
 
-    BusDetail busMap = busDetailFromJson(busMapString!);
-
-    // dev.log("var:" + socketMapString.toString());
-    if (locationDto != null) {
-      writeToFirestore(locationDto, busMap, send!);
-    }
-    // send?.send(locationDto);
+    send?.send(locationDto);
     _count++;
+    if (locationDto != null) {
+      await updateBus(busNumber: busMap["busNumber"], busIdNumber: busMap["busIdNumber"], geoPoint: GeoPoint(locationDto.latitude, locationDto.longitude));
+
+      // send?.send(locationDto);
+    }
   }
 
-  writeToFirestore(LocationDto data, BusDetail busMap, SendPort send) async {
-    await updateBus(busNumber: busMap.busNumber, busIdNumber: busMap.busIdNumber, geoPoint: GeoPoint(data.latitude, data.longitude));
-    send.send(data);
+  Future updateBus({required String busNumber, required String busIdNumber, required GeoPoint? geoPoint}) async {
+    FirebaseFirestore instance = FirebaseFirestore.instance;
+    return await instance.collection('Bus List').doc(busNumber + "-" + busIdNumber).update({"Location": geoPoint});
   }
 }

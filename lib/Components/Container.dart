@@ -6,7 +6,7 @@ Widget container(
     required Widget widget,
     bool border = false,
     Color bgColor = const Color(white),
-    Color borderColor = const Color(red),
+    Color borderColor = const Color(materialBlack),
     double radius = 10.0,
     double spreadRadius = 5.0,
     double blurRadius = 7.0,

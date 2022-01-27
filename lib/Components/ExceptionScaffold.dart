@@ -9,12 +9,12 @@ import 'package:lottie/lottie.dart';
 Widget exceptionScaffold(
     {required BuildContext context, required String lottieString, required String subtitle, Function()? onPressed, String buttonTitle = "Try Again", bool goBack = true}) {
   return Scaffold(
-    backgroundColor: Color(materialBlack),
+    backgroundColor: Color(white),
     resizeToAvoidBottomInset: false,
     appBar: (onPressed != null)
         ? AppBar(
             elevation: 0,
-            backgroundColor: Color(materialBlack),
+            backgroundColor: Color(white),
             automaticallyImplyLeading: false,
             leading: (goBack)
                 ? IconButton(
@@ -51,7 +51,7 @@ Widget exceptionScaffold(
                         padding: const EdgeInsets.only(top: 5),
                         child: Text(
                           subtitle,
-                          style: GoogleFonts.montserratAlternates(textStyle: textStyle(color: Color(white))),
+                          style: GoogleFonts.montserratAlternates(textStyle: textStyle(color: Color(materialBlack))),
                           textAlign: TextAlign.center,
                         ),
                       ),

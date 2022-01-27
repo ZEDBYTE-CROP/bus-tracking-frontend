@@ -88,7 +88,7 @@ class ApiHandler {
     Uri uri = Uri.parse(url);
     try {
       valueNotifier.value = Tuple4(0, exceptionFromJson(loading), "Api Loading", null);
-      if ((subscribedConnectivityIndex ?? connectivityResult?.index) != 3) {
+      if ((subscribedConnectivityIndex ?? connectivityResult?.index) != 4) {
         if (testJsonString == null) {
           log("Url:\n" + url.toString() + "\n");
           log((headers != null) ? "Headers:\n" + headers.toString() + "\n" : "Headers:\n" + authToken.toString() + "\n");

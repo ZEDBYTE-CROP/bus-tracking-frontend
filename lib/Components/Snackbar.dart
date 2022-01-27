@@ -12,6 +12,6 @@ SnackBar snackbar({required String content, SnackBarBehavior snackBarBehaviour =
     ),
     shape: RoundedRectangleBorder(side: BorderSide(color: Color(materialBlack)), borderRadius: BorderRadius.circular(5)),
     behavior: snackBarBehaviour,
-    backgroundColor: Color(red),
+    backgroundColor: Color(materialBlack),
   );
 }

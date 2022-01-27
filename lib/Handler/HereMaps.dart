@@ -1,5 +1,5 @@
+import 'dart:developer';
 import 'dart:typed_data';
-import '../Handler/Url.dart';
 import '../Others/Environment.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -7,15 +7,6 @@ import 'package:here_sdk/core.dart';
 import 'package:here_sdk/gestures.dart';
 import 'package:here_sdk/mapview.dart';
 import 'package:http/http.dart' as http;
-
-Future<http.Response> hereReverseGeocode({
-  required String latitude,
-  required String longitude,
-}) async {
-  String url = 'https://reverse.geocoder.ls.hereapi.com/6.2/reversegeocode.json?apiKey=${EnvironmentConfig.HERE_MAPS_KEY}&mode=retrieveAddresses&prox=$latitude,$longitude';
-  print(url);
-  return await http.get(Uri.parse(url));
-}
 
 onMapCreated(HereMapController hereMapController,
     {required double lat, required double lng, required GeoCoordinates geoCoordinates, required MapImage? poiMapImage, required BuildContext context}) {
@@ -25,12 +16,10 @@ onMapCreated(HereMapController hereMapController,
       return;
     }
 
-    const double distanceToEarthInMeters = 800;
-    hereMapController.camera.lookAtPointWithDistance(GeoCoordinates(lat, lng), distanceToEarthInMeters);
-    hereMapController.gestures.tapListener = TapListener((Point2D touchPoint) async {
-      await launchGoogleMaps(latitude: lat.toString(), longitude: lng.toString(), context: context);
-    });
-    await addMapMarker(hereMapController, geoCoordinates, 0, "locationMark.png", poiMapImage);
+    // const double distanceToEarthInMeters = 800;
+    // hereMapController.camera.lookAtPointWithDistance(GeoCoordinates(lat, lng), distanceToEarthInMeters);
+
+    // await addMapMarker(hereMapController, geoCoordinates, 0, "locationMark.png", poiMapImage);
   });
 }
 
@@ -47,5 +36,13 @@ Future<void> addMapMarker(HereMapController hereMapController, GeoCoordinates ge
   Anchor2D anchor2D = Anchor2D.withHorizontalAndVertical(0.5, 1);
   MapMarker mapMarker = MapMarker.withAnchor(geoCoordinates, poiMapImage, anchor2D);
   mapMarker.drawOrder = drawOrder;
+MapMarker()
+  try {
+
+    hereMapController.mapScene.removeMapMarker(mapMarker);
+  } catch (e) {
+    log(e.toString());
+  }
+
   hereMapController.mapScene.addMapMarker(mapMarker);
 }

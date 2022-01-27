@@ -80,128 +80,140 @@ class _SignInState extends State<SignIn> {
         child: Scaffold(
             backgroundColor: Color(white),
             body: SingleChildScrollView(
-              child: Column(children: [
-                SizedBox(height: MediaQuery.of(context).size.height / 6),
-                CustomPaint(
-                  size: Size(
-                      100, (100 * 0.7733421750663131).toDouble()), //You can Replace [WIDTH] with your desired width for Custom Paint and height will be calculated automatically
-                  painter: LogoPainter(),
-                ),
-                SizedBox(height: MediaQuery.of(context).size.height / 6),
-                Row(
-                  children: List.generate(
-                      signInClaimList.length,
-                      (index) => GestureDetector(
-                          onTap: () {
-                            if (!mounted) return;
-                            setState(() {
-                              optionIndex = index;
-                            });
-                          },
-                          child: Padding(
-                            padding: EdgeInsets.all(2),
-                            child: container(
-                                alignment: Alignment.center,
-                                padding: EdgeInsets.all(10),
-                                width: MediaQuery.of(context).size.width / 3,
-                                shadow: (index == optionIndex) ? true : false,
-                                border: (index == optionIndex) ? true : false,
-                                widget: Text(signInClaimList[index])),
-                          ))),
-                ),
-                SizedBox(height: MediaQuery.of(context).size.height / 7),
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      textFormField(
-                        textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
-                        textEditingController: idTextEditingController,
-                        hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
-                        hintText: (optionIndex == 0) ? "Enter username" : "Enter idnumber",
-                        validator: (value) => defaultValidator(value, (optionIndex == 0) ? "username" : "idnumber"),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: textFormField(
-                            textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
-                            textEditingController: passwordTextEditingController,
-                            obscureText: obscure,
-                            hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
-                            hintText: "Enter Password",
-                            validator: (value) => passwordValidator(value),
-                            suffixIcon: GestureDetector(
-                                onTap: () {
-                                  if (!mounted) return;
-                                  setState(() {
-                                    obscure = !obscure;
-                                  });
-                                },
-                                child: Icon(
-                                  (obscure == false) ? Icons.visibility : Icons.visibility_off,
-                                  color: Color(grey),
-                                ))),
-                      ),
-                    ],
+              child: Padding(
+                padding: const EdgeInsets.only(left: 20, right: 20),
+                child: Column(children: [
+                  SizedBox(height: MediaQuery.of(context).size.height / 10),
+                  CustomPaint(
+                    size: Size(
+                        250, (250 * 0.7733421750663131).toDouble()), //You can Replace [WIDTH] with your desired width for Custom Paint and height will be calculated automatically
+                    painter: LogoPainter(),
                   ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: 10),
-                  child: flatButton(
-                      onPressed: (loginValueNotifier.value.item1 == 0)
-                          ? null
-                          : () async {
-                              if (_formKey.currentState!.validate()) {
-                                if (optionIndex == 0) {
-                                  return await adminLoginApiCall().whenComplete(() async {
-                                    if (loginValueNotifier.value.item1 == 1) {
-                                      await writeUserProfile(profileToJson(Profile(claim: optionIndex, idNumber: idTextEditingController.text)));
-                                      await writeUserPersistence(true);
-                                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Dashboard()), (route) => false);
-                                    } else if (loginValueNotifier.value.item1 == 2 || loginValueNotifier.value.item1 == 3) {
-                                      final snackBar = snackbar(content: loginValueNotifier.value.item3);
-                                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                                    }
-                                  });
-                                } else if (optionIndex == 1) {
-                                  return await driverLoginApiCall().whenComplete(() async {
-                                    if (loginValueNotifier.value.item1 == 1) {
-                                      await writeUserProfile(profileToJson(Profile(claim: optionIndex, idNumber: idTextEditingController.text)));
-                                      await writeUserPersistence(true);
-                                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Dashboard()), (route) => false);
-                                    } else if (loginValueNotifier.value.item1 == 2 || loginValueNotifier.value.item1 == 3) {
-                                      final snackBar = snackbar(content: loginValueNotifier.value.item3);
-                                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                                    }
-                                  });
-                                } else if (optionIndex == 2) {
-                                  return await studentLoginApiCall().whenComplete(() {
-                                    if (loginValueNotifier.value.item1 == 1) {
-                                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Dashboard()), (route) => false);
-                                    } else if (loginValueNotifier.value.item1 == 2 || loginValueNotifier.value.item1 == 3) {
-                                      final snackBar = snackbar(content: loginValueNotifier.value.item3);
-                                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                                    }
-                                  });
-                                } else {
-                                  return;
-                                }
-                              } else {
-                                final snackBar = snackbar(content: "Fill out the required fields!");
-                                ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                              }
+                  SizedBox(height: MediaQuery.of(context).size.height / 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                        signInClaimList.length,
+                        (index) => GestureDetector(
+                            onTap: () {
+                              if (!mounted) return;
+                              setState(() {
+                                optionIndex = index;
+                              });
                             },
-                      widget: (loginValueNotifier.value.item1 == 0) ? CircularProgressIndicator() : Text("Login")),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: 10),
-                  child: flatButton(
-                      onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => SignUp()));
-                      },
-                      widget: Text("SignUp")),
-                )
-              ]),
+                            child: Padding(
+                              padding: EdgeInsets.all(5),
+                              child: container(
+                                  alignment: Alignment.center,
+                                  padding: EdgeInsets.all(10),
+                                  width: MediaQuery.of(context).size.width / 4,
+                                  bgColor: (index == optionIndex) ? Color(materialBlack) : Color(white),
+                                  shadow: (index == optionIndex) ? true : false,
+                                  border: true,
+                                  borderColor: Color(materialBlack),
+                                  widget: Text(
+                                    signInClaimList[index],
+                                    style: textStyle(color: (index == optionIndex) ? Color(white) : Color(materialBlack)),
+                                  )),
+                            ))),
+                  ),
+                  SizedBox(height: MediaQuery.of(context).size.height / 15),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        textFormField(
+                          textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
+                          textEditingController: idTextEditingController,
+                          hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
+                          hintText: (optionIndex == 0) ? "Enter username" : "Enter idnumber",
+                          validator: (value) => defaultValidator(value, (optionIndex == 0) ? "username" : "idnumber"),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: textFormField(
+                              textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
+                              textEditingController: passwordTextEditingController,
+                              obscureText: obscure,
+                              hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
+                              hintText: "Enter Password",
+                              validator: (value) => defaultValidator(value, "Password"),
+                              // validator: (value) => passwordValidator(value),
+                              suffixIcon: GestureDetector(
+                                  onTap: () {
+                                    if (!mounted) return;
+                                    setState(() {
+                                      obscure = !obscure;
+                                    });
+                                  },
+                                  child: Icon(
+                                    (obscure == false) ? Icons.visibility : Icons.visibility_off,
+                                    color: Color(grey),
+                                  ))),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 10),
+                    child: flatButton(
+                        onPressed: (loginValueNotifier.value.item1 == 0)
+                            ? null
+                            : () async {
+                                if (_formKey.currentState!.validate()) {
+                                  if (optionIndex == 0) {
+                                    return await adminLoginApiCall().whenComplete(() async {
+                                      if (loginValueNotifier.value.item1 == 1) {
+                                        await writeUserProfile(profileToJson(Profile(claim: optionIndex, idNumber: idTextEditingController.text)));
+                                        await writeUserPersistence(true);
+                                        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Dashboard()), (route) => false);
+                                      } else if (loginValueNotifier.value.item1 == 2 || loginValueNotifier.value.item1 == 3) {
+                                        final snackBar = snackbar(content: loginValueNotifier.value.item3);
+                                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                      }
+                                    });
+                                  } else if (optionIndex == 1) {
+                                    return await studentLoginApiCall().whenComplete(() async {
+                                      if (loginValueNotifier.value.item1 == 1) {
+                                        await writeUserProfile(profileToJson(Profile(claim: optionIndex, idNumber: idTextEditingController.text)));
+                                        await writeUserPersistence(true);
+                                        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Dashboard()), (route) => false);
+                                      } else if (loginValueNotifier.value.item1 == 2 || loginValueNotifier.value.item1 == 3) {
+                                        final snackBar = snackbar(content: loginValueNotifier.value.item3);
+                                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                      }
+                                    });
+                                  } else if (optionIndex == 2) {
+                                    return await driverLoginApiCall().whenComplete(() async {
+                                      if (loginValueNotifier.value.item1 == 1) {
+                                        await writeUserProfile(profileToJson(Profile(claim: optionIndex, idNumber: idTextEditingController.text)));
+                                        await writeUserPersistence(true);
+                                        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => Dashboard()), (route) => false);
+                                      } else if (loginValueNotifier.value.item1 == 2 || loginValueNotifier.value.item1 == 3) {
+                                        final snackBar = snackbar(content: loginValueNotifier.value.item3);
+                                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                      }
+                                    });
+                                  } else {
+                                    return;
+                                  }
+                                } else {
+                                  final snackBar = snackbar(content: "Fill out the required fields!");
+                                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                }
+                              },
+                        widget: (loginValueNotifier.value.item1 == 0) ? CircularProgressIndicator() : Text("Login")),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 10),
+                    child: flatButton(
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => SignUp()));
+                        },
+                        widget: Text("SignUp")),
+                  )
+                ]),
+              ),
             )));
   }
 }

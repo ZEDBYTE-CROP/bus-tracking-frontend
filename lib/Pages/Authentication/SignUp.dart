@@ -75,11 +75,11 @@ class _SignUpState extends State<SignUp> {
     );
   }
 
-  Future busListRegisterApiCall() async {
+  Future busListApiCall() async {
     return await ApiHandler().apiHandler(
       valueNotifier: busListValueNotifier,
       jsonModel: busListFromJson,
-      url: driverSignUpUrl,
+      url: busListUrl,
       requestMethod: 1,
       body: {"page": "", "limit": "", "busIdNumber": ""},
     );
@@ -99,7 +99,7 @@ class _SignUpState extends State<SignUp> {
   @override
   void initState() {
     super.initState();
-    busListRegisterApiCall().whenComplete(() {
+    busListApiCall().whenComplete(() {
       if (busListValueNotifier.value.item1 == 1) {
         for (int i = 0; i < busListValueNotifier.value.item2.result.length; i++) {
           busNumberList.add(busListValueNotifier.value.item2.result[i].busIdNumber);
@@ -118,232 +118,283 @@ class _SignUpState extends State<SignUp> {
               return Scaffold(
                 backgroundColor: Color(white),
                 body: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      SizedBox(height: MediaQuery.of(context).size.height / 6),
-                      CustomPaint(
-                        size: Size(100,
-                            (100 * 0.7733421750663131).toDouble()), //You can Replace [WIDTH] with your desired width for Custom Paint and height will be calculated automatically
-                        painter: LogoPainter(),
-                      ),
-                      SizedBox(height: MediaQuery.of(context).size.height / 6),
-                      Row(
-                        children: List.generate(
-                            signUpClaimList.length,
-                            (index) => GestureDetector(
-                                onTap: () {
-                                  if (!mounted) return;
-                                  setState(() {
-                                    optionIndex = index;
-                                  });
-                                },
-                                child: Padding(
-                                  padding: EdgeInsets.all(2),
-                                  child: container(
-                                      alignment: Alignment.center,
-                                      padding: EdgeInsets.all(10),
-                                      width: MediaQuery.of(context).size.width / 3,
-                                      shadow: (index == optionIndex) ? true : false,
-                                      border: (index == optionIndex) ? true : false,
-                                      widget: Text(signUpClaimList[index])),
-                                ))),
-                      ),
-                      SizedBox(height: MediaQuery.of(context).size.height / 7),
-                      Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            textFormField(
-                              textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
-                              textEditingController: nameTextEditingController,
-                              hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
-                              hintText: "Enter username",
-                              validator: (value) => usernameValidator(value),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 10),
-                              child: textFormField(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 20),
+                    child: Column(
+                      children: [
+                        SizedBox(height: MediaQuery.of(context).size.height / 10),
+                        CustomPaint(
+                          size: Size(250,
+                              (250 * 0.7733421750663131).toDouble()), //You can Replace [WIDTH] with your desired width for Custom Paint and height will be calculated automatically
+                          painter: LogoPainter(),
+                        ),
+                        SizedBox(height: MediaQuery.of(context).size.height / 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                              signUpClaimList.length,
+                              (index) => GestureDetector(
+                                  onTap: () {
+                                    if (!mounted) return;
+                                    setState(() {
+                                      optionIndex = index;
+                                    });
+                                  },
+                                  child: Padding(
+                                    padding: EdgeInsets.all(5),
+                                    child: container(
+                                        alignment: Alignment.center,
+                                        padding: EdgeInsets.all(10),
+                                        width: MediaQuery.of(context).size.width / 4,
+                                        bgColor: (index == optionIndex) ? Color(materialBlack) : Color(white),
+                                        shadow: (index == optionIndex) ? true : false,
+                                        border: true,
+                                        borderColor: Color(materialBlack),
+                                        widget: Text(
+                                          signUpClaimList[index],
+                                          style: textStyle(color: (index == optionIndex) ? Color(white) : Color(materialBlack)),
+                                        )),
+                                  ))),
+                        ),
+                        SizedBox(height: MediaQuery.of(context).size.height / 15),
+                        Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              textFormField(
                                 textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
-                                textEditingController: phoneNumberTextEditingController,
-                                obscureText: obscure,
-                                keyboardType: TextInputType.phone,
+                                textEditingController: nameTextEditingController,
                                 hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
-                                hintText: "Enter Phone Number",
-                                validator: (value) => phoneValidator(value),
+                                hintText: "Enter username",
+                                validator: (value) => defaultValidator(value, "Name"),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 10),
-                              child: textFormField(
-                                textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
-                                textEditingController: idTextEditingController,
-                                obscureText: obscure,
-                                hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
-                                hintText: "Enter Id Number",
-                                validator: (value) => defaultValidator(value, "Id Number"),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: textFormField(
+                                  textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
+                                  textEditingController: phoneNumberTextEditingController,
+                                  keyboardType: TextInputType.phone,
+                                  hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
+                                  hintText: "Enter Phone Number",
+                                  validator: (value) => phoneValidator(value),
+                                ),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 10),
-                              child: container(
-                                  padding: EdgeInsets.only(top: 10, bottom: 10, left: 20, right: 20),
-                                  bgColor: Color(white),
-                                  widget: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                        value: bloodGroup,
-                                        hint: Text(
-                                          "Pick a Blood Group",
-                                          style: GoogleFonts.montserratAlternates(textStyle: textStyle(color: Color(white))),
-                                        ),
-                                        icon: Icon(
-                                          Icons.keyboard_arrow_down_rounded,
-                                          color: Color(white),
-                                        ),
-                                        isExpanded: true,
-                                        onChanged: (String? value) {
+                              Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: textFormField(
+                                  textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
+                                  textEditingController: idTextEditingController,
+                                  hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
+                                  hintText: "Enter Id Number",
+                                  validator: (value) => defaultValidator(value, "Id Number"),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: container(
+                                    padding: EdgeInsets.only(top: 5, bottom: 5, left: 10, right: 10),
+                                    bgColor: Color(white),
+                                    border: true,
+                                    shadow: false,
+                                    widget: DropdownButtonHideUnderline(
+                                      child: DropdownButton<String>(
+                                          value: bloodGroup,
+                                          hint: Text(
+                                            "Pick a Blood Group",
+                                            style: GoogleFonts.montserratAlternates(textStyle: textStyle(color: Color(grey))),
+                                          ),
+                                          icon: Icon(
+                                            Icons.keyboard_arrow_down_rounded,
+                                            color: Color(materialBlack),
+                                          ),
+                                          isExpanded: true,
+                                          onChanged: (String? value) {
+                                            if (!mounted) return;
+                                            setState(() {
+                                              bloodGroup = value;
+                                            });
+                                          },
+                                          dropdownColor: Color(white),
+                                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                                          items: bloodGroupList
+                                              .map((value) => DropdownMenuItem(
+                                                  value: value,
+                                                  child: Text(
+                                                    value,
+                                                    style: GoogleFonts.montserratAlternates(textStyle: textStyle(color: Color(materialBlack))),
+                                                  )))
+                                              .toList()),
+                                    )),
+                              ),
+                              (optionIndex == 0)
+                                  ? Padding(
+                                      padding: const EdgeInsets.only(top: 15),
+                                      child: container(
+                                          padding: EdgeInsets.only(top: 5, bottom: 5, left: 10, right: 10),
+                                          bgColor: Color(white),
+                                          border: true,
+                                          shadow: false,
+                                          widget: DropdownButtonHideUnderline(
+                                            child: DropdownButton<String>(
+                                                value: busIdNumber,
+                                                hint: Text(
+                                                  "Pick a Bus Number",
+                                                  style: GoogleFonts.montserratAlternates(textStyle: textStyle(color: Color(grey))),
+                                                ),
+                                                icon: Icon(
+                                                  Icons.keyboard_arrow_down_rounded,
+                                                  color: Color(materialBlack),
+                                                ),
+                                                isExpanded: true,
+                                                onChanged: (String? value) {
+                                                  if (!mounted) return;
+                                                  setState(() {
+                                                    busIdNumber = value;
+                                                  });
+                                                },
+                                                dropdownColor: Color(white),
+                                                borderRadius: BorderRadius.all(Radius.circular(10)),
+                                                items: busNumberList
+                                                    .map((value) => DropdownMenuItem(
+                                                        value: value,
+                                                        child: Text(
+                                                          value,
+                                                          style: GoogleFonts.montserratAlternates(textStyle: textStyle(color: Color(materialBlack))),
+                                                        )))
+                                                    .toList()),
+                                          )),
+                                    )
+                                  : Container(),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 15),
+                                child: textFormField(
+                                    textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
+                                    textEditingController: passwordTextEditingController,
+                                    obscureText: obscure,
+                                    hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
+                                    hintText: "Enter password",
+                                    validator: (value) => defaultValidator(value, "Password"),
+                                    suffixIcon: GestureDetector(
+                                        onTap: () {
                                           if (!mounted) return;
                                           setState(() {
-                                            bloodGroup = value;
+                                            obscure = !obscure;
                                           });
                                         },
-                                        dropdownColor: Color(red),
-                                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                                        items: bloodGroupList
-                                            .map((value) => DropdownMenuItem(
-                                                value: value,
-                                                child: Text(
-                                                  value,
-                                                  style: GoogleFonts.montserratAlternates(textStyle: textStyle(color: Color(white))),
-                                                )))
-                                            .toList()),
-                                  )),
-                            ),
-                            (optionIndex == 0)
-                                ? Padding(
-                                    padding: const EdgeInsets.only(top: 10),
-                                    child: container(
-                                        padding: EdgeInsets.only(top: 10, bottom: 10, left: 20, right: 20),
-                                        bgColor: Color(white),
-                                        widget: DropdownButtonHideUnderline(
-                                          child: DropdownButton<String>(
-                                              value: busIdNumber,
-                                              hint: Text(
-                                                "Pick a Bus Number",
-                                                style: GoogleFonts.montserratAlternates(textStyle: textStyle(color: Color(white))),
-                                              ),
-                                              icon: Icon(
-                                                Icons.keyboard_arrow_down_rounded,
-                                                color: Color(white),
-                                              ),
-                                              isExpanded: true,
-                                              onChanged: (String? value) {
-                                                if (!mounted) return;
-                                                setState(() {
-                                                  busIdNumber = value;
-                                                });
-                                              },
-                                              dropdownColor: Color(red),
-                                              borderRadius: BorderRadius.all(Radius.circular(10)),
-                                              items: busNumberList
-                                                  .map((value) => DropdownMenuItem(
-                                                      value: value,
-                                                      child: Text(
-                                                        value,
-                                                        style: GoogleFonts.montserratAlternates(textStyle: textStyle(color: Color(white))),
-                                                      )))
-                                                  .toList()),
-                                        )),
-                                  )
-                                : Container(),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 10),
-                              child: textFormField(
-                                  textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
-                                  textEditingController: passwordTextEditingController,
-                                  obscureText: obscure,
-                                  hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
-                                  hintText: "Enter password",
-                                  validator: (value) => passwordValidator(value),
-                                  suffixIcon: GestureDetector(
-                                      onTap: () {
-                                        if (!mounted) return;
-                                        setState(() {
-                                          obscure = !obscure;
-                                        });
-                                      },
-                                      child: Icon(
-                                        (obscure == false) ? Icons.visibility : Icons.visibility_off,
-                                        color: Color(grey),
-                                      ))),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 10),
-                              child: textFormField(
-                                  textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
-                                  textEditingController: confirmPasswordTextEditingController,
-                                  obscureText: obscure,
-                                  hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
-                                  hintText: "Enter idNumber",
-                                  validator: (value) => passwordValidator(value),
-                                  suffixIcon: GestureDetector(
-                                      onTap: () {
-                                        if (!mounted) return;
-                                        setState(() {
-                                          obscure = !obscure;
-                                        });
-                                      },
-                                      child: Icon(
-                                        (obscure == false) ? Icons.visibility : Icons.visibility_off,
-                                        color: Color(grey),
-                                      ))),
-                            ),
-                          ],
+                                        child: Icon(
+                                          (obscure == false) ? Icons.visibility : Icons.visibility_off,
+                                          color: Color(grey),
+                                        ))),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: textFormField(
+                                    textStyle: GoogleFonts.montserrat(textStyle: textStyle()),
+                                    textEditingController: confirmPasswordTextEditingController,
+                                    obscureText: obscure,
+                                    hintStyle: GoogleFonts.montserrat(textStyle: textStyle(color: Color(grey))),
+                                    hintText: "Confirm Password",
+                                    validator: (value) => defaultValidator(value, "Password"),
+                                    suffixIcon: GestureDetector(
+                                        onTap: () {
+                                          if (!mounted) return;
+                                          setState(() {
+                                            obscure = !obscure;
+                                          });
+                                        },
+                                        child: Icon(
+                                          (obscure == false) ? Icons.visibility : Icons.visibility_off,
+                                          color: Color(grey),
+                                        ))),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.only(top: 10),
-                        child: flatButton(
-                            onPressed: (registerValueNotifier.value.item1 == 0)
-                                ? null
-                                : () async {
-                                    if (_formKey.currentState!.validate() && busIdNumber != null && bloodGroup != null) {
+                        Padding(
+                          padding: EdgeInsets.only(top: 10),
+                          child: flatButton(
+                              onPressed: (registerValueNotifier.value.item1 == 0)
+                                  ? null
+                                  : () async {
                                       if (optionIndex == 0) {
-                                        return await studentRegisterApiCall().whenComplete(() {
-                                          if (registerValueNotifier.value.item1 == 1) {
-                                            Navigator.pop(context);
-                                          } else if (registerValueNotifier.value.item1 == 2 || registerValueNotifier.value.item1 == 3) {
-                                            final snackBar = snackbar(content: registerValueNotifier.value.item3);
+                                        if (_formKey.currentState!.validate() && busIdNumber != null && bloodGroup != null) {
+                                          if (passwordTextEditingController.text == confirmPasswordTextEditingController.text) {
+                                            if (optionIndex == 0) {
+                                              return await studentRegisterApiCall().whenComplete(() {
+                                                if (registerValueNotifier.value.item1 == 1) {
+                                                  Navigator.pop(context);
+                                                } else if (registerValueNotifier.value.item1 == 2 || registerValueNotifier.value.item1 == 3) {
+                                                  final snackBar = snackbar(content: registerValueNotifier.value.item3);
+                                                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                                }
+                                              });
+                                            } else if (optionIndex == 1) {
+                                              return await driverRegisterApiCall().whenComplete(() {
+                                                if (registerValueNotifier.value.item1 == 1) {
+                                                  Navigator.pop(context);
+                                                } else if (registerValueNotifier.value.item1 == 2 || registerValueNotifier.value.item1 == 3) {
+                                                  final snackBar = snackbar(content: registerValueNotifier.value.item3);
+                                                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                                }
+                                              });
+                                            } else {
+                                              return;
+                                            }
+                                          } else {
+                                            final snackBar = snackbar(content: "Passwords do not match!");
                                             ScaffoldMessenger.of(context).showSnackBar(snackBar);
                                           }
-                                        });
+                                        } else {
+                                          final snackBar = snackbar(content: "Fill out the required fields!");
+                                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                        }
                                       } else if (optionIndex == 1) {
-                                        return await driverRegisterApiCall().whenComplete(() {
-                                          if (registerValueNotifier.value.item1 == 1) {
-                                            Navigator.pop(context);
-                                          } else if (registerValueNotifier.value.item1 == 2 || registerValueNotifier.value.item1 == 3) {
-                                            final snackBar = snackbar(content: registerValueNotifier.value.item3);
+                                        if (_formKey.currentState!.validate() && bloodGroup != null) {
+                                          if (passwordTextEditingController.text == confirmPasswordTextEditingController.text) {
+                                            if (optionIndex == 0) {
+                                              return await studentRegisterApiCall().whenComplete(() {
+                                                if (registerValueNotifier.value.item1 == 1) {
+                                                  Navigator.pop(context);
+                                                } else if (registerValueNotifier.value.item1 == 2 || registerValueNotifier.value.item1 == 3) {
+                                                  final snackBar = snackbar(content: registerValueNotifier.value.item3);
+                                                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                                }
+                                              });
+                                            } else if (optionIndex == 1) {
+                                              return await driverRegisterApiCall().whenComplete(() {
+                                                if (registerValueNotifier.value.item1 == 1) {
+                                                  Navigator.pop(context);
+                                                } else if (registerValueNotifier.value.item1 == 2 || registerValueNotifier.value.item1 == 3) {
+                                                  final snackBar = snackbar(content: registerValueNotifier.value.item3);
+                                                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                                }
+                                              });
+                                            } else {
+                                              return;
+                                            }
+                                          } else {
+                                            final snackBar = snackbar(content: "Passwords do not match!");
                                             ScaffoldMessenger.of(context).showSnackBar(snackBar);
                                           }
-                                        });
-                                      } else {
-                                        return;
+                                        } else {
+                                          final snackBar = snackbar(content: "Fill out the required fields!");
+                                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                        }
                                       }
-                                    } else {
-                                      final snackBar = snackbar(content: "Fill out the required fields!");
-                                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                                    }
-                                  },
-                            widget: (registerValueNotifier.value.item1 == 0) ? CircularProgressIndicator() : Text("Register")),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.only(top: 10),
-                        child: flatButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            widget: Text("Login")),
-                      ),
-                    ],
+                                    },
+                              widget: (registerValueNotifier.value.item1 == 0) ? CircularProgressIndicator() : Text("Register")),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.only(top: 10),
+                          child: flatButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              widget: Text("Login")),
+                        ),
+                        SizedBox(height: MediaQuery.of(context).size.height / 15),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -355,7 +406,7 @@ class _SignUpState extends State<SignUp> {
                   goBack: false,
                   buttonTitle: "Try Again",
                   onPressed: () async {
-                    await busListRegisterApiCall();
+                    await busListApiCall();
                   });
             } else {
               return exceptionScaffold(

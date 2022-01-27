@@ -1,4 +1,5 @@
 import 'package:bustracker/Components/Container.dart';
+import 'package:bustracker/Components/ExceptionScaffold.dart';
 import 'package:bustracker/Components/Snackbar.dart';
 import 'package:bustracker/Handler/Network.dart';
 import 'package:bustracker/Model/Default.dart';
@@ -41,6 +42,9 @@ class _DriverListState extends State<DriverList> {
             body.addAll(driverListValueNotifier.value.item2.result);
           });
         }
+      } else if (driverListValueNotifier.value.item1 == 2 || driverListValueNotifier.value.item1 == 3) {
+        final snackBar = snackbar(content: driverListValueNotifier.value.item3);
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
     });
   }
@@ -81,6 +85,15 @@ class _DriverListState extends State<DriverList> {
             backgroundColor: Color(white),
             appBar: AppBar(
               elevation: 0,
+              automaticallyImplyLeading: false,
+              leading: IconButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  icon: Icon(
+                    Icons.arrow_back,
+                    color: Color(materialBlack),
+                  )),
               backgroundColor: Color(white),
               title: Text(
                 "Driver List",
@@ -100,11 +113,7 @@ class _DriverListState extends State<DriverList> {
                       snap: true,
                       forceElevated: innerBoxIsScrolled,
                       automaticallyImplyLeading: false,
-                      backgroundColor: Color(materialBlack),
-                      bottom: PreferredSize(
-                        preferredSize: Size.fromHeight(30.0),
-                        child: Text(''),
-                      ),
+                      backgroundColor: Color(white),
                     ),
                   )
                 ];
@@ -113,24 +122,24 @@ class _DriverListState extends State<DriverList> {
                 onNotification: (notification) {
                   if ((isLoading == false && notification.metrics.axisDirection == AxisDirection.down && notification.metrics.pixels == notification.metrics.maxScrollExtent) ==
                       true) {
-                    if (driverListValueNotifier.value.item2.result.length == 10) {
-                      if (!mounted) return false;
+                    // if (driverListValueNotifier.value.item2.result.length == 10) {
+                    if (!mounted) return false;
+                    setState(() {
+                      isLoading = true;
+                      page += 1;
+                    });
+                    this.driverListApiCall().whenComplete(() {
+                      if (!mounted) return;
                       setState(() {
-                        isLoading = true;
-                        page += 1;
+                        isLoading = false;
                       });
-                      this.driverListApiCall().whenComplete(() {
-                        if (!mounted) return;
-                        setState(() {
-                          isLoading = false;
-                        });
-                      });
-                    } else {
-                      if (driverListValueNotifier.value.item2.result.length == 0 || driverListValueNotifier.value.item2.result.length < 10) {
-                        final snackBar = snackbar(content: "End of Scroll!");
-                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                      }
-                    }
+                    });
+                    // } else {
+                    //   if (driverListValueNotifier.value.item2.result.length == 0 || driverListValueNotifier.value.item2.result.length < 10) {
+                    //     final snackBar = snackbar(content: "End of Scroll!");
+                    //     ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                    //   }
+                    // }
                   }
                   return true;
                 },
@@ -142,54 +151,69 @@ class _DriverListState extends State<DriverList> {
                     },
                     child: Padding(
                         padding: const EdgeInsets.only(left: 20, right: 20),
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: ListView.builder(
-                                  itemCount: body.length,
-                                  shrinkWrap: true,
-                                  itemBuilder: (context, index) {
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 20),
-                                      child: GestureDetector(
-                                        onTap: () async {
-                                          return await assignDriverApiCall(name: body[index].name, id: body[index].idNumber).whenComplete(() {
-                                            if (assignDriverValueNotifier.value.item1 == 1) {
-                                              Navigator.pop(context, true);
-                                            } else if (assignDriverValueNotifier.value.item1 == 2 || assignDriverValueNotifier.value.item1 == 3) {
-                                              valueResetter(assignDriverValueNotifier);
-                                              final snackBar = snackbar(content: assignDriverValueNotifier.value.item3);
-                                              ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                                            }
-                                          });
-                                        },
-                                        child: container(
-                                            padding: EdgeInsets.only(top: 15, bottom: 15, left: 10, right: 10),
-                                            bgColor: Color(materialBlack),
-                                            widget: Flexible(
-                                              child: Text(
-                                                "DRIVER NAME : " + body[index].name,
-                                                style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
-                                                overflow: TextOverflow.ellipsis,
-                                                maxLines: 1,
-                                                softWrap: true,
-                                              ),
-                                            )),
+                        child: (body.isNotEmpty || driverListValueNotifier.value.item1 == 1)
+                            ? Column(
+                                children: [
+                                  Expanded(
+                                    child: ListView.builder(
+                                        itemCount: body.length,
+                                        shrinkWrap: true,
+                                        itemBuilder: (context, index) {
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 20),
+                                            child: GestureDetector(
+                                              onTap: () async {
+                                                return await assignDriverApiCall(name: body[index].name, id: body[index].idNumber.toString()).whenComplete(() {
+                                                  if (assignDriverValueNotifier.value.item1 == 1) {
+                                                    Navigator.pop(context, true);
+                                                  } else if (assignDriverValueNotifier.value.item1 == 2 || assignDriverValueNotifier.value.item1 == 3) {
+                                                    valueResetter(assignDriverValueNotifier);
+                                                    final snackBar = snackbar(content: assignDriverValueNotifier.value.item3);
+                                                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                                  }
+                                                });
+                                              },
+                                              child: container(
+                                                  padding: EdgeInsets.only(top: 15, bottom: 15, left: 10, right: 10),
+                                                  bgColor: Color(materialBlack),
+                                                  widget: Text(
+                                                    "DRIVER NAME : " + body[index].name,
+                                                    style: textStyle(color: Color(white), fontsize: 18, fontWeight: FontWeight.w600),
+                                                    overflow: TextOverflow.ellipsis,
+                                                    maxLines: 1,
+                                                    softWrap: true,
+                                                  )),
+                                            ),
+                                          );
+                                        }),
+                                  ),
+                                  Container(
+                                    height: (isLoading == true) ? 20.0 : 0,
+                                    color: Colors.transparent,
+                                    child: Center(
+                                      child: new LinearProgressIndicator(
+                                        color: Color(materialBlack),
                                       ),
-                                    );
-                                  }),
-                            ),
-                            Container(
-                              height: (isLoading == true) ? 20.0 : 0,
-                              color: Colors.transparent,
-                              child: Center(
-                                child: new LinearProgressIndicator(
-                                  color: Color(red),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ))),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : (driverListValueNotifier.value.item1 == 2 || driverListValueNotifier.value.item1 == 3)
+                                ? exceptionScaffold(
+                                    context: context,
+                                    lottieString: driverListValueNotifier.value.item2!.lottieString,
+                                    subtitle: driverListValueNotifier.value.item3,
+                                    buttonTitle: "Try Again",
+                                    goBack: false,
+                                    onPressed: () async {
+                                      return await driverListApiCall();
+                                    })
+                                : exceptionScaffold(
+                                    context: context,
+                                    lottieString: driverListValueNotifier.value.item2!.lottieString,
+                                    subtitle: driverListValueNotifier.value.item3,
+                                    goBack: false,
+                                  ))),
               ),
             ),
           );

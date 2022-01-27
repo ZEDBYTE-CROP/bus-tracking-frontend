@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 BusList busListFromJson(String str) => BusList.fromJson(json.decode(str));
@@ -10,21 +9,18 @@ class BusList {
     required this.code,
     required this.status,
     required this.message,
-    required this.documentCount,
     required this.result,
   });
 
   int code;
   String status;
   String message;
-  int documentCount;
   List<Result> result;
 
   factory BusList.fromJson(Map<String, dynamic> json) => BusList(
         code: json["code"],
         status: json["status"],
         message: json["message"],
-        documentCount: json["documentCount"],
         result: List<Result>.from(json["result"].map((x) => Result.fromJson(x))),
       );
 
@@ -32,7 +28,6 @@ class BusList {
         "code": code,
         "status": status,
         "message": message,
-        "documentCount": documentCount,
         "result": List<dynamic>.from(result.map((x) => x.toJson())),
       };
 }

@@ -1,4 +1,4 @@
-const String ip = 'http://35.154.109.173:5000';
+const String ip = 'http://15.207.221.120:8000';
 const String studentLoginUrl = '$ip/student/login';
 const String adminLoginUrl = '$ip/admin/login';
 const String driverLoginUrl = '$ip/driver/login';
