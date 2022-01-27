@@ -42,3 +42,4 @@ Future<void> addMapMarker(HereMapController hereMapController, GeoCoordinates ge
   mapMarker.drawOrder = drawOrder;
   hereMapController.mapScene.addMapMarker(mapMarker);
 }
+

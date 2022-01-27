@@ -22,13 +22,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.8.1"
-  background_locator:
-    dependency: "direct main"
-    description:
-      name: background_locator
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "1.6.12"
   boolean_selector:
     dependency: transitive
     description:
@@ -304,7 +297,7 @@ packages:
     source: hosted
     version: "1.8.0"
   path_provider:
-    dependency: "direct dev"
+    dependency: transitive
     description:
       name: path_provider
       url: "https://pub.dartlang.org"
@@ -387,6 +380,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "3.0.1+1"
+  responsive_framework:
+    dependency: "direct main"
+    description:
+      name: responsive_framework
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.1.5"
   shared_preferences:
     dependency: "direct main"
     description:

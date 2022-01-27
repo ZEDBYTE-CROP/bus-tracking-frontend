@@ -3,15 +3,13 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:isolate';
 import 'dart:ui';
-
-import 'package:background_locator/background_locator.dart';
-import 'package:background_locator/location_dto.dart';
 import 'package:bustracker/Components/Container.dart';
 import 'package:bustracker/Components/ExceptionScaffold.dart';
 import 'package:bustracker/Components/FlatButton.dart';
 import 'package:bustracker/Components/Snackbar.dart';
 import 'package:bustracker/Components/TextFormField.dart';
 import 'package:bustracker/Database/SharedPreferences.dart';
+import 'package:bustracker/Handler/Location.dart';
 import 'package:bustracker/Handler/Network.dart';
 import 'package:bustracker/Model/AssignedBusList.dart';
 import 'package:bustracker/Model/BusList.dart';
@@ -20,11 +18,8 @@ import 'package:bustracker/Model/DriverDetail.dart';
 import 'package:bustracker/Model/Exception.dart';
 import 'package:bustracker/Model/Profile.dart';
 import 'package:bustracker/Model/UserBusDetail.dart';
-import 'package:bustracker/Others/Lifecycle.dart';
-import 'package:bustracker/Others/Location.dart';
 import 'package:bustracker/Others/LottieString.dart';
 import 'package:bustracker/Others/Routes.dart';
-import 'package:bustracker/Others/location_service_repository.dart';
 import 'package:bustracker/Pages/Bus/CreateBus.dart';
 import 'package:bustracker/Pages/Bus/DriverList.dart';
 import 'package:bustracker/Pages/Firestore/BusLocationCollection.dart';
@@ -62,10 +57,6 @@ class _DashboardState extends State<Dashboard> {
   TextEditingController reasonTextEditingController = TextEditingController();
   TextEditingController descriptionTextEditingController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
-  LocationDto? lastLocation;
-  bool? isRunning;
-  ReceivePort port = ReceivePort();
 
   Future sendAlertApiCall(String name) async {
     return await ApiHandler().apiHandler(
@@ -156,6 +147,7 @@ class _DashboardState extends State<Dashboard> {
       if (profile!.claim == 0) {
         return await busListApiCall();
       } else if (profile!.claim == 2) {
+        await getUserLocation();
         return await driverDetailApiCall(profile!.idNumber);
       } else {
         return await assignedBusListApiCall();
@@ -166,24 +158,6 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     initialiser();
-    // WidgetsBinding.instance!.addObserver(LifecycleEventHandler(resumeCallBack: () async {
-    //   await Location().hasPermission().then((value) async {
-    //     if (value == PermissionStatus.granted || value == PermissionStatus.granted) {
-    //       initialiser();
-    //     }
-    //   });
-    // }));
-
-    // if (IsolateNameServer.lookupPortByName(LocationServiceRepository.isolateName) != null) {
-    //   IsolateNameServer.removePortNameMapping(LocationServiceRepository.isolateName);
-    // }
-    // IsolateNameServer.registerPortWithName(port.sendPort, LocationServiceRepository.isolateName);
-    // port.listen(
-    //   (dynamic data) async {
-    //     await updateUI(data);
-    //   },
-    // );
-    // initPlatformState();
     super.initState();
   }
 
@@ -199,51 +173,6 @@ class _DashboardState extends State<Dashboard> {
     body.clear();
     super.dispose();
   }
-
-  // Future<void> updateUI(data) async {
-  //   if (data == null) {
-  //     return;
-  //   }
-  //   // await BackgroundLocator.updateNotificationText(title: "BusTracker", msg: "Background Location is Running!", bigMsg: "BusTracker needs to access location in the background!");
-  //   await BackgroundLocator.updateNotificationText(title: "BusTracker", msg: "${DateTime.now()}", bigMsg: "${data.latitude}, ${data.longitude}");
-  // }
-
-  // Future<void> initPlatformState() async {
-  //   print('Initializing...');
-  //   await BackgroundLocator.initialize();
-  //   print('Initialization done');
-  //   final _isRunning = await BackgroundLocator.isServiceRunning();
-  //   if (!mounted) return;
-  //   setState(() {
-  //     isRunning = _isRunning;
-  //   });
-  //   print('Running ${isRunning.toString()}');
-  // }
-
-  // void onStop() async {
-  //   await BackgroundLocator.unRegisterLocationUpdate();
-  //   final _isRunning = await BackgroundLocator.isServiceRunning();
-  //   if (!mounted) return;
-  //   setState(() {
-  //     isRunning = _isRunning;
-  //   });
-  // }
-
-  // void onStart() async {
-  //   await getLocation().then((value) async {
-  //     if (value.item1 != null) {
-  //       await getLiveLocation();
-  //       final _isRunning = await BackgroundLocator.isServiceRunning();
-  //       if (!mounted) return;
-  //       setState(() {
-  //         isRunning = _isRunning;
-  //         lastLocation = null;
-  //       });
-  //     } else {
-  //       log(isRunning.toString());
-  //     }
-  //   });
-  // }
 
   onStart() async {
     Location location = new Location();
