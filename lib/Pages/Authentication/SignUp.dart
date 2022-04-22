@@ -114,7 +114,7 @@ class _SignUpState extends State<SignUp> {
       child: ValueListenableBuilder(
           valueListenable: busListValueNotifier,
           builder: (context, value, _) {
-            if (busListValueNotifier.value.item1 == 1) {
+            if (busListValueNotifier.value.item1 == 1 || busListValueNotifier.value.item1 == 3) {
               return Scaffold(
                 backgroundColor: Color(white),
                 body: SingleChildScrollView(
@@ -398,7 +398,7 @@ class _SignUpState extends State<SignUp> {
                   ),
                 ),
               );
-            } else if (busListValueNotifier.value.item1 == 2 || busListValueNotifier.value.item1 == 3) {
+            } else if (busListValueNotifier.value.item1 == 2) {
               return exceptionScaffold(
                   context: context,
                   lottieString: busListValueNotifier.value.item2.lottieString,

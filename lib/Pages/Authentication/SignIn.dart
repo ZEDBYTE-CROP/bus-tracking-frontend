@@ -208,7 +208,7 @@ class _SignInState extends State<SignIn> {
                     padding: EdgeInsets.only(top: 10),
                     child: flatButton(
                         onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => SignUp()));
+                          return Navigator.push(context, MaterialPageRoute(builder: (context) => SignUp()));
                         },
                         widget: Text("SignUp")),
                   )
